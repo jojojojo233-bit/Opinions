@@ -23,8 +23,8 @@ interface PollDetailModalProps {
 const mockDiscussions = [
   {
     id: '1',
-    user: 'CryptoAnalyst',
-    comment: 'Based on current market trends and institutional adoption, I believe we could see $150K by Q4 2026.',
+    user: 'CafeLover',
+    comment: 'I think based on the current trends option 1 would be the the clear choice.',
     timestamp: '2 hours ago',
     likes: 42
   },
