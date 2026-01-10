@@ -1,0 +1,282 @@
+import { X, Users, Clock, Coins, MessageCircle, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+
+interface Poll {
+  id: string;
+  title: string;
+  category: string;
+  creator: string;
+  reward: number;
+  responses: number;
+  options: Array<{ text: string; percentage: number }>;
+  endsAt: string;
+  description?: string;
+}
+
+interface PollDetailModalProps {
+  poll: Poll | null;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+// Mock discussion data
+const mockDiscussions = [
+  {
+    id: '1',
+    user: 'CryptoAnalyst',
+    comment: 'Based on current market trends and institutional adoption, I believe we could see $150K by Q4 2026.',
+    timestamp: '2 hours ago',
+    likes: 42
+  },
+  {
+    id: '2',
+    user: 'MarketWatcher',
+    comment: 'The regulatory environment will be crucial. If we get favorable regulations, this is definitely possible.',
+    timestamp: '5 hours ago',
+    likes: 28
+  },
+  {
+    id: '3',
+    user: 'BTCHolder',
+    comment: 'Historical patterns suggest a major rally in 2026. $150K seems conservative to me.',
+    timestamp: '1 day ago',
+    likes: 35
+  }
+];
+
+export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps) {
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [activeTab, setActiveTab] = useState<'vote' | 'discussion'>('vote');
+  const [comment, setComment] = useState('');
+
+  if (!isOpen || !poll) return null;
+
+  const handleVote = () => {
+    if (selectedOption !== null && !hasVoted) {
+      setHasVoted(true);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const getRewardPerVote = () => {
+    return (poll.reward / poll.responses).toFixed(4);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        {/* Background overlay */}
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+        />
+
+        {/* Modal panel */}
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+          <div className="absolute top-0 right-0 pt-4 pr-4 z-10">
+            <button
+              onClick={onClose}
+              className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          <div className="bg-white px-6 pt-6 pb-6">
+            {/* Header */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  {poll.category}
+                </span>
+                <span className="text-sm text-gray-500">by {poll.creator}</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                {poll.title}
+              </h2>
+              
+              {/* Stats Bar */}
+              <div className="flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <Coins className="h-5 w-5 text-yellow-500" />
+                  <div>
+                    <span className="font-semibold text-yellow-600">{poll.reward} SOL</span>
+                    <span className="text-gray-500 ml-1">pool</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-5 w-5 text-gray-500" />
+                  <span className="text-gray-700">{poll.responses.toLocaleString()} responses</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-5 w-5 text-gray-500" />
+                  <span className="text-gray-700">Ends {formatDate(poll.endsAt)}</span>
+                </div>
+              </div>
+
+              {/* Context/Description */}
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <TrendingUp className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Context</h3>
+                    <p className="text-sm text-gray-600">
+                      {poll.description || 
+                        "Bitcoin's price trajectory depends on various factors including institutional adoption, regulatory developments, and macroeconomic conditions. Historical data shows significant volatility, making this prediction particularly interesting for the crypto community."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <p className="text-sm text-purple-900">
+                  <strong>Reward:</strong> ~{getRewardPerVote()} SOL per vote • Distributed when poll closes
+                </p>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="border-b border-gray-200 mb-6">
+              <div className="flex gap-6">
+                <button
+                  onClick={() => setActiveTab('vote')}
+                  className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'vote'
+                      ? 'border-purple-600 text-purple-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Vote & Results
+                </button>
+                <button
+                  onClick={() => setActiveTab('discussion')}
+                  className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+                    activeTab === 'discussion'
+                      ? 'border-purple-600 text-purple-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Discussion ({mockDiscussions.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'vote' ? (
+              <div className="space-y-4">
+                {/* Voting Options */}
+                <div className="space-y-3">
+                  {poll.options.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => !hasVoted && setSelectedOption(index)}
+                      disabled={hasVoted}
+                      className={`w-full text-left p-4 rounded-lg border transition-all ${
+                        selectedOption === index && !hasVoted
+                          ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
+                          : hasVoted
+                          ? 'border-gray-200 bg-gray-50'
+                          : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50'
+                      } ${hasVoted ? 'cursor-default' : 'cursor-pointer'}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-gray-900">{option.text}</span>
+                        <span className="text-lg font-bold text-purple-600">
+                          {option.percentage}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-purple-600 h-3 rounded-full transition-all"
+                          style={{ width: `${option.percentage}%` }}
+                        />
+                      </div>
+                      <div className="mt-1 text-sm text-gray-500">
+                        ~{Math.round(poll.responses * (option.percentage / 100)).toLocaleString()} votes
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Vote Button */}
+                {!hasVoted && (
+                  <button
+                    onClick={handleVote}
+                    disabled={selectedOption === null}
+                    className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+                      selectedOption !== null
+                        ? 'bg-purple-600 text-white hover:bg-purple-700'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    Submit Vote & Earn Reward
+                  </button>
+                )}
+
+                {hasVoted && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                    <p className="text-green-800 font-medium">
+                      ✓ Vote submitted! You'll receive ~{getRewardPerVote()} SOL when the poll closes.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {/* Add Comment */}
+                <div className="sticky top-0 bg-white pb-4 border-b border-gray-200">
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Share your thoughts..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    rows={3}
+                  />
+                  <button
+                    onClick={() => setComment('')}
+                    className="mt-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                  >
+                    Post Comment
+                  </button>
+                </div>
+
+                {/* Comments */}
+                {mockDiscussions.map((discussion) => (
+                  <div key={discussion.id} className="border-b border-gray-100 pb-4 last:border-0">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-purple-600">
+                            {discussion.user[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{discussion.user}</p>
+                          <p className="text-xs text-gray-500">{discussion.timestamp}</p>
+                        </div>
+                      </div>
+                      <button className="text-sm text-gray-500 hover:text-purple-600">
+                        ♥ {discussion.likes}
+                      </button>
+                    </div>
+                    <p className="text-gray-700 ml-10">{discussion.comment}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
