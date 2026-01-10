@@ -6,7 +6,7 @@ interface CategoriesProps {
 const categories = [
   'All',
   'Politics',
-  'Sports',
+  'Office',
   'Technology',
   'Entertainment',
   'Finance',
