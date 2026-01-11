@@ -1,5 +1,5 @@
-import { X, Users, Clock, Coins, MessageCircle, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { X, Users, Clock, Coins, TrendingUp, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useOpinions } from '../hooks/useOpinions';
 import { PublicKey } from '@solana/web3.js';
@@ -13,49 +13,53 @@ interface Poll {
   responses: number;
   options: Array<{ text: string; percentage: number }>;
   endsAt: string;
-  description?: string;
+  context?: string
+  // description?: string;
 }
 
 interface PollDetailModalProps {
   poll: Poll | null;
   isOpen: boolean;
   onClose: () => void;
+  onVote: (pollId: string, optionIndex: number, userAddress?: string) => void;
+  onDelete?: (pollId: string) => void;
 }
 
-// Mock discussion data
-const mockDiscussions = [
-  {
-    id: '1',
-    user: 'CafeLover',
-    comment: 'I think based on the current trends option 1 would be the the clear choice.',
-    timestamp: '2 hours ago',
-    likes: 42
-  },
-  {
-    id: '2',
-    user: 'MarketWatcher',
-    comment: 'The regulatory environment will be crucial. If we get favorable regulations, this is definitely possible.',
-    timestamp: '5 hours ago',
-    likes: 28
-  },
-  {
-    id: '3',
-    user: 'BTCHolder',
-    comment: 'Historical patterns suggest a major rally in 2026. $150K seems conservative to me.',
-    timestamp: '1 day ago',
-    likes: 35
-  }
-];
-
-export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps) {
+export function PollDetailModal({ poll, isOpen, onClose, onVote, onDelete }: PollDetailModalProps) {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'vote' | 'discussion'>('vote');
-  const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
 
   const { publicKey, sendTransaction } = useWallet();
   const opinionsService = useOpinions();
+
+  useEffect(() => {
+    if (poll && isOpen && publicKey) {
+      const savedVotes = localStorage.getItem('opinions_votes');
+      if (savedVotes) {
+        try {
+          const votes = JSON.parse(savedVotes);
+          const myVote = votes.find((v: any) => v.pollId === poll.id && v.userAddress === publicKey.toBase58());
+          if (myVote) {
+             setHasVoted(true);
+             setSelectedOption(myVote.optionIndex);
+          } else {
+             setHasVoted(false);
+             setSelectedOption(null);
+          }
+        } catch (e) {
+          console.error("Error reading votes", e);
+        }
+      } else {
+         setHasVoted(false);
+         setSelectedOption(null);
+      }
+    } else if (!isOpen) {
+        // Reset state when closed
+        setHasVoted(false);
+        setSelectedOption(null);
+    }
+  }, [poll, isOpen, publicKey]);
 
   if (!isOpen || !poll) return null;
 
@@ -107,6 +111,9 @@ export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps)
                     await new Promise(r => setTimeout(r, 1000)); // Fake delay
             }
     
+            if (poll) {
+              onVote(poll.id, selectedOption, publicKey?.toBase58());
+            }
             setHasVoted(true);
         } catch (e) {
             console.error("Vote failed", e);
@@ -140,7 +147,21 @@ export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps)
 
         {/* Modal panel */}
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
-          <div className="absolute top-0 right-0 pt-4 pr-4 z-10">
+          <div className="absolute top-0 right-0 pt-4 pr-4 z-10 flex gap-2">
+            {onDelete && (
+                <button
+                    onClick={() => {
+                        if (confirm('Are you sure you want to delete this poll?')) {
+                            onDelete(poll.id);
+                            onClose();
+                        }
+                    }}
+                    className="bg-white rounded-md text-red-400 hover:text-red-500 focus:outline-none"
+                    title="Delete Poll (Dev)"
+                >
+                    <Trash2 className="h-6 w-6" />
+                </button>
+            )}
             <button
               onClick={onClose}
               className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
@@ -190,8 +211,8 @@ export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps)
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1">Context</h3>
                     <p className="text-sm text-gray-600">
-                      {poll.description || 
-                        "Bitcoin's price trajectory depends on various factors including institutional adoption, regulatory developments, and macroeconomic conditions. Historical data shows significant volatility, making this prediction particularly interesting for the crypto community."}
+                      {poll.context || 
+                        "There is no context."}
                     </p>
                   </div>
                 </div>
@@ -204,136 +225,67 @@ export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps)
               </div>
             </div>
 
-            {/* Tabs */}
-            <div className="border-b border-gray-200 mb-6">
-              <div className="flex gap-6">
+            {/* Voting Options */}
+            <div className="space-y-3">
+              {poll.options.map((option, index) => (
                 <button
-                  onClick={() => setActiveTab('vote')}
-                  className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === 'vote'
-                      ? 'border-purple-600 text-purple-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
+                  key={index}
+                  onClick={() => !hasVoted && setSelectedOption(index)}
+                  disabled={hasVoted}
+                  className={`w-full text-left p-4 rounded-lg border transition-all ${
+                    selectedOption === index
+                      ? 'border-purple-600 bg-purple-50 ring-2 ring-purple-200'
+                      : hasVoted
+                      ? 'border-gray-200 bg-gray-50 opacity-60'
+                      : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50'
+                  } ${hasVoted ? 'cursor-default' : 'cursor-pointer'}`}
                 >
-                  Vote & Results
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-900 flex items-center gap-2">
+                      {option.text}
+                      {hasVoted && selectedOption === index && (
+                        <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                          Your Vote
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-lg font-bold text-purple-600">
+                      {option.percentage}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-purple-600 h-3 rounded-full transition-all"
+                      style={{ width: `${option.percentage}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 text-sm text-gray-500">
+                    ~{Math.round(poll.responses * (option.percentage / 100)).toLocaleString()} votes
+                  </div>
                 </button>
-                <button
-                  onClick={() => setActiveTab('discussion')}
-                  className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
-                    activeTab === 'discussion'
-                      ? 'border-purple-600 text-purple-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Discussion ({mockDiscussions.length})
-                </button>
-              </div>
+              ))}
             </div>
 
-            {/* Tab Content */}
-            {activeTab === 'vote' ? (
-              <div className="space-y-4">
-                {/* Voting Options */}
-                <div className="space-y-3">
-                  {poll.options.map((option, index) => (
-                    <button
-                      key={index}
-                      onClick={() => !hasVoted && setSelectedOption(index)}
-                      disabled={hasVoted}
-                      className={`w-full text-left p-4 rounded-lg border transition-all ${
-                        selectedOption === index && !hasVoted
-                          ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
-                          : hasVoted
-                          ? 'border-gray-200 bg-gray-50'
-                          : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50'
-                      } ${hasVoted ? 'cursor-default' : 'cursor-pointer'}`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-gray-900">{option.text}</span>
-                        <span className="text-lg font-bold text-purple-600">
-                          {option.percentage}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div
-                          className="bg-purple-600 h-3 rounded-full transition-all"
-                          style={{ width: `${option.percentage}%` }}
-                        />
-                      </div>
-                      <div className="mt-1 text-sm text-gray-500">
-                        ~{Math.round(poll.responses * (option.percentage / 100)).toLocaleString()} votes
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            {/* Vote Button */}
+            {!hasVoted && (
+              <button
+                onClick={handleVote}
+                disabled={selectedOption === null || loading}
+                className={`w-full py-3 px-4 rounded-lg font-medium transition-colors mt-4 ${
+                  selectedOption !== null && !loading
+                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {loading ? 'Submitting...' : 'Submit Vote & Earn Reward'}
+              </button>
+            )}
 
-                {/* Vote Button */}
-                {!hasVoted && (
-                  <button
-                    onClick={handleVote}
-                    disabled={selectedOption === null || loading}
-                    className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-                      selectedOption !== null && !loading
-                        ? 'bg-purple-600 text-white hover:bg-purple-700'
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {loading ? 'Submitting...' : 'Submit Vote & Earn Reward'}
-                  </button>
-                )}
-
-                {hasVoted && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                    <p className="text-green-800 font-medium">
-                      ✓ Vote submitted! You'll receive ~{getRewardPerVote()} SOL when the poll closes.
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {/* Add Comment */}
-                <div className="sticky top-0 bg-white pb-4 border-b border-gray-200">
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Share your thoughts..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                    rows={3}
-                  />
-                  <button
-                    onClick={() => setComment('')}
-                    className="mt-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
-                  >
-                    Post Comment
-                  </button>
-                </div>
-
-                {/* Comments */}
-                {mockDiscussions.map((discussion) => (
-                  <div key={discussion.id} className="border-b border-gray-100 pb-4 last:border-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-purple-600">
-                            {(discussion.user.length > 15 ? "Anonymous User" : discussion.user)[0]}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {discussion.user.length > 15 ? "Anonymous User" : discussion.user}
-                          </p>
-                          <p className="text-xs text-gray-500">{discussion.timestamp}</p>
-                        </div>
-                      </div>
-                      <button className="text-sm text-gray-500 hover:text-purple-600">
-                        ♥ {discussion.likes}
-                      </button>
-                    </div>
-                    <p className="text-gray-700 ml-10">{discussion.comment}</p>
-                  </div>
-                ))}
+            {hasVoted && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center mt-4">
+                <p className="text-green-800 font-medium">
+                  ✓ Vote submitted! You'll receive ~{getRewardPerVote()} SOL when the poll closes.
+                </p>
               </div>
             )}
           </div>
