@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useOpinions } from '../hooks/useOpinions';
 import { PollData } from './PollGrid';
+import { generateContext } from '../lib/generateContext';
 
 interface CreatePollModalProps {
   isOpen: boolean;
@@ -122,8 +123,22 @@ export function CreatePollModal({ isOpen, onClose, onPollCreated }: CreatePollMo
             console.error("Failed to save poll secret", e);
         }
 
-        if (onPollCreated) onPollCreated(newPoll);
-        onClose();
+    // Try to generate a short AI-written context for this poll (server-side key required)
+    try {
+      const context = await generateContext({
+        question: title,
+        category,
+        options: options.filter(o => o.trim() !== ''),
+      });
+      // attach to the poll shown in UI
+      // @ts-ignore - extended property
+      newPoll.aiContext = context;
+    } catch (e) {
+      console.warn('AI context generation failed', e);
+    }
+
+    if (onPollCreated) onPollCreated(newPoll);
+    onClose();
         
         // Reset form
         setTitle('');

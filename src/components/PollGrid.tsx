@@ -11,6 +11,7 @@ export interface PollData {
   responses: number;
   options: { text: string; percentage: number }[];
   endsAt: string;
+  aiContext?: string;
 }
 
 interface PollGridProps {

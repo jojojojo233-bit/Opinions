@@ -9,6 +9,7 @@ interface Poll {
   responses: number;
   options: Array<{ text: string; percentage: number }>;
   endsAt: string;
+  aiContext?: string;
 }
 
 interface PollCardProps {
@@ -49,6 +50,10 @@ export function PollCard({ poll, onClick }: PollCardProps) {
       <h3 className="text-lg font-semibold text-gray-900 mb-4 line-clamp-2">
         {poll.title}
       </h3>
+
+      {poll.aiContext && (
+        <p className="text-sm text-gray-600 mb-3 line-clamp-3">{poll.aiContext}</p>
+      )}
 
       {/* Options Preview */}
       <div className="space-y-2 mb-4">
