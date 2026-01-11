@@ -114,10 +114,10 @@ export default function App() {
       />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <DevTools onUpdatePolls={(updatedPolls) => {
+        {/* <DevTools onUpdatePolls={(updatedPolls) => {
             setPolls(updatedPolls);
             localStorage.setItem('opinions_db_polls', JSON.stringify(updatedPolls));
-        }} />
+        }} /> */}
 
         <PollGrid
           selectedCategory={selectedCategory}

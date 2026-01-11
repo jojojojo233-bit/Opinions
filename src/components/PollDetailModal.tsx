@@ -148,7 +148,7 @@ export function PollDetailModal({ poll, isOpen, onClose, onVote, onDelete }: Pol
         {/* Modal panel */}
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
           <div className="absolute top-0 right-0 pt-4 pr-4 z-10 flex gap-2">
-            {onDelete && (
+            {/* {onDelete && (
                 <button
                     onClick={() => {
                         if (confirm('Are you sure you want to delete this poll?')) {
@@ -161,7 +161,7 @@ export function PollDetailModal({ poll, isOpen, onClose, onVote, onDelete }: Pol
                 >
                     <Trash2 className="h-6 w-6" />
                 </button>
-            )}
+            )} */}
             <button
               onClick={onClose}
               className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
