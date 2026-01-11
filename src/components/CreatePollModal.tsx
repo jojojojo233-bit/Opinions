@@ -1,17 +1,25 @@
 import { X, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useOpinions } from '../hooks/useOpinions';
+import { PollData } from './PollGrid';
 
 interface CreatePollModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onPollCreated?: (poll: PollData) => void;
 }
 
-export function CreatePollModal({ isOpen, onClose }: CreatePollModalProps) {
+export function CreatePollModal({ isOpen, onClose, onPollCreated }: CreatePollModalProps) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Politics');
   const [options, setOptions] = useState(['', '']);
   const [reward, setReward] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const { publicKey, sendTransaction } = useWallet();
+  const opinionsService = useOpinions();
 
   if (!isOpen) return null;
 
@@ -33,11 +41,102 @@ export function CreatePollModal({ isOpen, onClose }: CreatePollModalProps) {
     setOptions(newOptions);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock poll creation
-    console.log({ title, category, options, reward, endDate });
-    onClose();
+    if (!publicKey) {
+        alert("Please connect your wallet first");
+        return;
+    }
+
+    try {
+        setLoading(true);
+        const amount = parseFloat(reward);
+        if (isNaN(amount) || amount <= 0) {
+            alert("Please enter a valid reward amount");
+            setLoading(false);
+            return;
+        }
+
+        // --- NEW: Check Balance ---
+        const balance = await opinionsService.connection.getBalance(publicKey);
+        const requiredLamports = (amount * 1_000_000_000) + 10_000_000; // Reward + ~0.01 SOL fees
+        if (balance < requiredLamports) {
+            alert(`Insufficient SOL. You have ${balance / 1e9} SOL, but need ${requiredLamports / 1e9} SOL. Please get Devnet SOL.`);
+            setLoading(false);
+            return;
+        }
+
+        const resolveDate = new Date(endDate).getTime();
+        
+        // Build transaction
+        const { transaction, pollKeypair } = await opinionsService.buildCreatePollTransaction(
+            publicKey,
+            title,
+            amount,
+            resolveDate
+        );
+
+        // --- DIAGNOSTIC CODE: CAPTURE BUG ---
+        // 1. Explicitly set Fee Payer & Blockhash to ensure simulation is accurate
+        transaction.feePayer = publicKey;
+        const { blockhash, lastValidBlockHeight } = await opinionsService.connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+
+        // 2. Simulate Manually to catch the Logs
+        console.log("Simulating transaction...");
+        const simulation = await opinionsService.connection.simulateTransaction(transaction);
+        
+        if (simulation.value.err) {
+            console.error("Simulation Error Logs:", simulation.value.logs);
+            const logStr = simulation.value.logs ? simulation.value.logs.join('\n') : "No logs";
+            throw new Error(`Simulation Failed via Diagnostic:\n${JSON.stringify(simulation.value.err)}\nLogs:\n${logStr}`);
+        }
+        console.log("Simulation Successful!", simulation.value.logs);
+
+        // 3. Send (Wallet Adapter might re-sign/re-fetch blockhash, but that's fine)
+        const signature = await sendTransaction(transaction, opinionsService.connection);
+        console.log("Transaction sent:", signature);
+        
+        await opinionsService.connection.confirmTransaction(signature, 'confirmed');
+
+        // Create Poll Object for UI
+        const newPoll: PollData = {
+            id: pollKeypair.publicKey.toBase58(),
+            title,
+            category,
+            creator: publicKey.toBase58(),
+            reward: amount,
+            responses: 0,
+            options: options.map(text => ({ text, percentage: 0 })),
+            endsAt: endDate
+        };
+
+        // Save Private Key locally for demo "Resolution" capability later
+        // In a real app, this would be a PDA (Program Derived Address) validation, 
+        // but here we just stash the key so we can recover funds/resolve.
+        try {
+            const pollSecrets = JSON.parse(localStorage.getItem('opinions_poll_secrets') || '{}');
+            pollSecrets[pollKeypair.publicKey.toBase58()] = Array.from(pollKeypair.secretKey);
+            localStorage.setItem('opinions_poll_secrets', JSON.stringify(pollSecrets));
+        } catch (e) {
+            console.error("Failed to save poll secret", e);
+        }
+
+        if (onPollCreated) onPollCreated(newPoll);
+        onClose();
+        
+        // Reset form
+        setTitle('');
+        setReward('');
+        setCategory('');
+        setOptions(['', '']);
+    } catch (err: any) {
+        console.error("Create Poll Failed:", err);
+        const msg = err.message || JSON.stringify(err);
+        alert(`Failed to create poll. Error: ${msg}`);
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -195,9 +294,10 @@ export function CreatePollModal({ isOpen, onClose }: CreatePollModalProps) {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                    disabled={loading}
+                    className="flex-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
                   >
-                    Create & Deposit
+                    {loading ? 'Creating...' : 'Create & Deposit'}
                   </button>
                 </div>
               </form>

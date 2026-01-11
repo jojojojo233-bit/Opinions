@@ -2,13 +2,25 @@ import { PollCard } from "./PollCard";
 import { PollDetailModal } from "./PollDetailModal";
 import { useState } from "react";
 
+export interface PollData {
+  id: string; // The Poll Address
+  title: string;
+  category: string;
+  creator: string;
+  reward: number;
+  responses: number;
+  options: { text: string; percentage: number }[];
+  endsAt: string;
+}
+
 interface PollGridProps {
   selectedCategory: string;
   searchQuery: string;
+  extraPolls?: PollData[];
 }
 
 // Mock data for popular polls
-const mockPolls = [
+const mockPolls: PollData[] = [
   {
     id: "1",
     title: "Do you prefer self checkout or a human cashier for more than 10 items?",
@@ -124,6 +136,7 @@ const mockPolls = [
 export function PollGrid({
   selectedCategory,
   searchQuery,
+  extraPolls = [], // Added default
 }: PollGridProps) {
   const [selectedPoll, setSelectedPoll] = useState<
     (typeof mockPolls)[0] | null
@@ -131,7 +144,9 @@ export function PollGrid({
   const [isDetailModalOpen, setIsDetailModalOpen] =
     useState(false);
 
-  const filteredPolls = mockPolls.filter((poll) => {
+  const allPolls = [...extraPolls, ...mockPolls];
+
+  const filteredPolls = allPolls.filter((poll) => {
     const matchesCategory =
       selectedCategory === "All" ||
       poll.category === selectedCategory;

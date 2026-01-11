@@ -1,4 +1,5 @@
-import { Search, User } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 interface HeaderProps {
   onAuthClick: () => void;
@@ -14,11 +15,6 @@ export function Header({ onAuthClick, onSearch, searchQuery, isLoggedIn }: Heade
         <div className="flex items-center justify-between h-16">
           {/* Logo - Top Left */}
           <div className="flex items-center gap-0.5">
-            <img 
-              src='src/components/ui/Images/logo.png' 
-              alt="Opinions Logo" 
-              className="h-8 w-3 object-contain object-left" 
-            />
             <h1 className="text-2xl font-bold text-purple-600">Opinions</h1>
           </div>
           {/* Search Bar - Middle Top */}
@@ -37,15 +33,8 @@ export function Header({ onAuthClick, onSearch, searchQuery, isLoggedIn }: Heade
             </div>
           </div>
 
-          {/* Login/Sign Up - Top Right */}
           <div className="flex-shrink-0">
-            <button
-              onClick={onAuthClick}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-            >
-              <User className="h-4 w-4 mr-2" />
-              {isLoggedIn ? 'Account' : 'Sign In'}
-            </button>
+             <WalletMultiButton />
           </div>
         </div>
       </div>

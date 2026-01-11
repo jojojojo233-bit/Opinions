@@ -40,7 +40,9 @@ export function PollCard({ poll, onClick }: PollCardProps) {
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
           {poll.category}
         </span>
-        <span className="text-xs text-gray-500">by {poll.creator}</span>
+        <span className="text-xs text-gray-500">
+          by {poll.creator.length > 15 ? "Anonymous User" : poll.creator}
+        </span>
       </div>
 
       {/* Title */}

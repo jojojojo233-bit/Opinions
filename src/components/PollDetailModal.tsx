@@ -1,5 +1,8 @@
 import { X, Users, Clock, Coins, MessageCircle, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useOpinions } from '../hooks/useOpinions';
+import { PublicKey } from '@solana/web3.js';
 
 interface Poll {
   id: string;
@@ -49,13 +52,68 @@ export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps)
   const [hasVoted, setHasVoted] = useState(false);
   const [activeTab, setActiveTab] = useState<'vote' | 'discussion'>('vote');
   const [comment, setComment] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const { publicKey, sendTransaction } = useWallet();
+  const opinionsService = useOpinions();
 
   if (!isOpen || !poll) return null;
 
-  const handleVote = () => {
-    if (selectedOption !== null && !hasVoted) {
-      setHasVoted(true);
-    }
+  const handleVote = async () => {
+    if (selectedOption === null || !poll) return;
+        
+        if (!publicKey) {
+            alert("Please connect wallet first");
+            return;
+        }
+    
+        try {
+            setLoading(true);
+            // We need the Poll Address. For mock data, IDs are "1", "2".
+            // For real data, IDs are Base58 addresses.
+            // We will try to parse ID as Pubkey. 
+            // If it fails (mock data), we mock the vote.
+            let pollPubkey: PublicKey | null = null;
+            try {
+                pollPubkey = new PublicKey(poll.id);
+            } catch {
+                console.log("Mock Poll ID, simulating vote locally only");
+            }
+    
+            if (pollPubkey) {
+                    const optionText = poll.options[selectedOption].text;
+                    const tx = await opinionsService.buildVoteTransaction(
+                        publicKey,
+                        pollPubkey,
+                        optionText
+                    );
+
+                    // --- DIAGNOSTIC START ---
+                    tx.feePayer = publicKey;
+                    const { blockhash } = await opinionsService.connection.getLatestBlockhash();
+                    tx.recentBlockhash = blockhash;
+                    
+                    const simulation = await opinionsService.connection.simulateTransaction(tx);
+                    if (simulation.value.err) {
+                        const logs = simulation.value.logs ? simulation.value.logs.join('\n') : "";
+                        throw new Error(`Vote Simulation Failed: ${JSON.stringify(simulation.value.err)}\nLogs: ${logs}`);
+                    }
+                    // --- DIAGNOSTIC END ---
+                    
+                    const signature = await sendTransaction(tx, opinionsService.connection);
+                    console.log("Vote Sent:", signature);
+                    await opinionsService.connection.confirmTransaction(signature, 'confirmed');
+            } else {
+                    await new Promise(r => setTimeout(r, 1000)); // Fake delay
+            }
+    
+            setHasVoted(true);
+        } catch (e) {
+            console.error("Vote failed", e);
+            alert("Vote failed");
+        } finally {
+            setLoading(false);
+        }
   };
 
   const formatDate = (dateString: string) => {
@@ -98,7 +156,9 @@ export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps)
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                   {poll.category}
                 </span>
-                <span className="text-sm text-gray-500">by {poll.creator}</span>
+                <span className="text-sm text-gray-500">
+                  by {poll.creator.length > 15 ? "Anonymous User" : poll.creator}
+                </span>
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 {poll.title}
@@ -212,14 +272,14 @@ export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps)
                 {!hasVoted && (
                   <button
                     onClick={handleVote}
-                    disabled={selectedOption === null}
+                    disabled={selectedOption === null || loading}
                     className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-                      selectedOption !== null
+                      selectedOption !== null && !loading
                         ? 'bg-purple-600 text-white hover:bg-purple-700'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     }`}
                   >
-                    Submit Vote & Earn Reward
+                    {loading ? 'Submitting...' : 'Submit Vote & Earn Reward'}
                   </button>
                 )}
 
@@ -257,11 +317,13 @@ export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps)
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
                           <span className="text-sm font-semibold text-purple-600">
-                            {discussion.user[0]}
+                            {(discussion.user.length > 15 ? "Anonymous User" : discussion.user)[0]}
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{discussion.user}</p>
+                          <p className="font-medium text-gray-900">
+                            {discussion.user.length > 15 ? "Anonymous User" : discussion.user}
+                          </p>
                           <p className="text-xs text-gray-500">{discussion.timestamp}</p>
                         </div>
                       </div>
