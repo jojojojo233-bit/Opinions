@@ -15,11 +15,11 @@ export function Header({ onAuthClick, onSearch, searchQuery, isLoggedIn }: Heade
           {/* Logo - Top Left */}
           <div className="flex items-center gap-0.5">
             <img 
-              src='src/components/ui/Images/opinions_logo.png' 
+              src='src/components/ui/Images/logo.png' 
               alt="Opinions Logo" 
               className="h-8 w-3 object-contain object-left" 
             />
-            <h1 className="text-2xl font-bold text-purple-600">pinions</h1>
+            <h1 className="text-2xl font-bold text-purple-600">Opinions</h1>
           </div>
           {/* Search Bar - Middle Top */}
           <div className="flex-1 max-w-2xl mx-8">
