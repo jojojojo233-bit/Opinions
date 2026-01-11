@@ -11,8 +11,6 @@
 *   **Vote & Earn**: Participate in polls to share the reward pool.
     *   **One Person, One Vote**: Enforces single-vote policy per wallet per poll.
     *   **Real-time Updates**: Vote percentages and counts update instantly.
-    *   **Visual Feedback**: Your selected option is highlighted for easy tracking.
-*   **Persistence**: Uses local storage to maintain poll state and voting history (Prototype phase).
 *   **Admin Tools**: Built-in developer tools to manage/delete unwanted polls.
 
 ## 🚀 Getting Started
