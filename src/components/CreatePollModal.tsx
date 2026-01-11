@@ -1,8 +1,9 @@
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useOpinions } from '../hooks/useOpinions';
 import { PollData } from './PollGrid';
+import { generatePollContext } from '../lib/gemini';
 
 interface CreatePollModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export function CreatePollModal({ isOpen, onClose, onPollCreated }: CreatePollMo
   const [reward, setReward] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState('');
 
   const { publicKey, sendTransaction } = useWallet();
   const opinionsService = useOpinions();
@@ -93,7 +95,17 @@ export function CreatePollModal({ isOpen, onClose, onPollCreated }: CreatePollMo
         }
         console.log("Simulation Successful!", simulation.value.logs);
 
+        // --- NEW: Generate Context with Gemini ---
+        setGenerationStatus("Generating AI Context...");
+        let generatedContext = "No context.";
+        try {
+             generatedContext = await generatePollContext(title);
+        } catch (e) {
+             console.log("Context generation skipped", e);
+        }
+
         // 3. Send (Wallet Adapter might re-sign/re-fetch blockhash, but that's fine)
+        setGenerationStatus("Confirming Transaction...");
         const signature = await sendTransaction(transaction, opinionsService.connection);
         console.log("Transaction sent:", signature);
         
@@ -108,7 +120,8 @@ export function CreatePollModal({ isOpen, onClose, onPollCreated }: CreatePollMo
             reward: amount,
             responses: 0,
             options: options.map(text => ({ text, percentage: 0 })),
-            endsAt: endDate
+            endsAt: endDate,
+            context: generatedContext
         };
 
         // Save Private Key locally for demo "Resolution" capability later
@@ -297,9 +310,15 @@ export function CreatePollModal({ isOpen, onClose, onPollCreated }: CreatePollMo
                     disabled={loading}
                     className="flex-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
                   >
-                    {loading ? 'Creating...' : 'Create & Deposit'}
+                    {loading ? 'Processing...' : 'Create Turn'}
                   </button>
                 </div>
+                {loading && (generationStatus || true) && (
+                    <div className="mt-2 text-center text-sm text-purple-600 flex justify-center items-center gap-2">
+                            <Sparkles className="w-4 h-4 animate-pulse" />
+                            {generationStatus || "Updating blockchain..."}
+                    </div>
+                )}
               </form>
             </div>
           </div>
