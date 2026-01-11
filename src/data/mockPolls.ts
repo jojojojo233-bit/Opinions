@@ -17,7 +17,7 @@ export const mockPolls: PollData[] = [
     category: "Finance",
     context: "Retailers are increasingly moving towards automation to reduce costs, but customer satisfaction varies significantly based on cart size.",
     creator: "Loblaws",
-    reward: 5.5,
+    reward: 0.5,
     responses: 1234,
     options: [
       { text: "Human Cashier", percentage: 62 },
@@ -31,7 +31,7 @@ export const mockPolls: PollData[] = [
     category: "Gaming",
     context: "Digital sales have overtaken physical media, raising questions about long-term ownership, resale value, and preservation.",
     creator: "Playstation",
-    reward: 3.2,
+    reward: 0.2,
     responses: 856,
     options: [
       { text: "Physical", percentage: 10 },
@@ -46,7 +46,7 @@ export const mockPolls: PollData[] = [
     category: "Finance",
     context: "Coffee prices have surged due to inflation and premium branding strategies, testing the limits of consumer spending on daily luxuries.",
     creator: "Starbucks",
-    reward: 7.8,
+    reward: 0.8,
     responses: 2103,
     options: [
       { text: "Yes", percentage: 45 },
@@ -60,7 +60,7 @@ export const mockPolls: PollData[] = [
     category: "Entertainment",
     context: "The streaming market is saturated, leading consumers to cancel services and consolidate their monthly subscriptions.",
     creator: "Netflix",
-    reward: 4.1,
+    reward: 0.1,
     responses: 967,
     options: [
       { text: "Netflix", percentage: 38 },
@@ -78,7 +78,7 @@ export const mockPolls: PollData[] = [
     category: "Office",
     context: "Companies are debating the optimal balance between in-person collaboration and remote flexibility as return-to-office mandates increase.",
     creator: "Amazon",
-    reward: 2.5,
+    reward: 0.5,
     responses: 543,
     options: [
       { text: "Full Remote", percentage: 50 },
@@ -93,7 +93,7 @@ export const mockPolls: PollData[] = [
     category: "Office",
     context: "The 4-day work week is gaining traction globally as a way to improve mental health and productivity, often without pay reductions.",
     creator: "Microsoft",
-    reward: 6.3,
+    reward: 0.3,
     responses: 1876,
     options: [
       { text: "Yes", percentage: 48 },
@@ -107,7 +107,7 @@ export const mockPolls: PollData[] = [
     category: "Office",
     context: "Remote work etiquette is evolving, with different expectations for engagement and visual presence in virtual meetings.",
     creator: "GamerPro",
-    reward: 3.9,
+    reward: 0.9,
     responses: 1432,
     options: [
       { text: "Yes", percentage: 55 },
@@ -121,7 +121,7 @@ export const mockPolls: PollData[] = [
     category: "Politics",
     context: "Rapid advancements in AI are reshaping the labor market, creating a divide between those who view it as a tool vs. a threat.eve AI will make your specific job easier or replace it entirely?",
     creator: "Apple",
-    reward: 5.0,
+    reward: 0.5,
     responses: 1654,
     options: [
       { text: "Yes", percentage: 78 },

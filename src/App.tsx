@@ -4,6 +4,7 @@ import { Categories } from './components/Categories';
 import { PollGrid, PollData } from './components/PollGrid';
 import { AddPollButton } from './components/AddPollButton';
 import { CreatePollModal } from './components/CreatePollModal';
+import { DevTools } from './components/DevTools';
 import { mockPolls } from './data/mockPolls';
 
 export default function App() {
@@ -38,24 +39,41 @@ export default function App() {
   };
 
   const handleVote = (pollId: string, optionIndex: number, userAddress?: string) => {
+    console.log(`Processing vote for poll ${pollId}, option ${optionIndex}`);
+    
     // Update the poll stats in the "database"
     const updatedPolls = polls.map(p => {
         if (p.id === pollId) {
             const newResponses = p.responses + 1;
-            // Recalculate percentages
+            
+            // 1. Calculate raw votes based on current percentages
+            let currentVotes = p.options.map(opt => Math.round(p.responses * (opt.percentage / 100)));
+            
+            // 2. Adjust for rounding errors (ensure sum equals total responses)
+            const sumVotes = currentVotes.reduce((a, b) => a + b, 0);
+            if (sumVotes !== p.responses) {
+                 // Distribute difference to the largest option to minimize visual jump
+                 const diff = p.responses - sumVotes;
+                 const maxIndex = currentVotes.indexOf(Math.max(...currentVotes));
+                 currentVotes[maxIndex] += diff;
+            }
+
+            // 3. Add the new vote
+            currentVotes[optionIndex] += 1;
+
+            // 4. Calculate new percentages
             const newOptions = p.options.map((opt, idx) => {
-                // Approximate current vote count
-                const oldVotes = Math.round(p.responses * (opt.percentage / 100));
-                const newVotes = idx === optionIndex ? oldVotes + 1 : oldVotes;
-                // Calculate new percentage
-                return { ...opt, percentage: Math.round((newVotes / newResponses) * 100) };
+                const votes = currentVotes[idx];
+                const percentage = newResponses > 0 ? Math.round((votes / newResponses) * 100) : 0;
+                return { ...opt, percentage };
             });
-            // Normalize percentages to 100% (optional, but good for UI)
-            // For now, simple update is enough.
+
+            console.log(`Updated poll stats: ${newResponses} responses`, newOptions);
             return { ...p, responses: newResponses, options: newOptions };
         }
         return p;
     });
+    
     setPolls(updatedPolls);
     localStorage.setItem('opinions_db_polls', JSON.stringify(updatedPolls));
 
@@ -96,6 +114,11 @@ export default function App() {
       />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <DevTools onUpdatePolls={(updatedPolls) => {
+            setPolls(updatedPolls);
+            localStorage.setItem('opinions_db_polls', JSON.stringify(updatedPolls));
+        }} />
+
         <PollGrid
           selectedCategory={selectedCategory}
           searchQuery={searchQuery}
