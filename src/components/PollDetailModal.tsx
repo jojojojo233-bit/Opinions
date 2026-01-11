@@ -126,7 +126,7 @@ export function PollDetailModal({ poll, isOpen, onClose }: PollDetailModalProps)
   };
 
   const getRewardPerVote = () => {
-    return (poll.reward / poll.responses).toFixed(4);
+    return (poll.reward / (poll.responses+1)).toFixed(4); // +1 to prevent infinity
   };
 
   return (

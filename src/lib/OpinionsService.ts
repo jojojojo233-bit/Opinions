@@ -148,7 +148,7 @@ export class OpinionsService {
       const transferIx = SystemProgram.transfer({
           fromPubkey: voterPubkey,
           toPubkey: pollAddress,
-          lamports: 0.1 * LAMPORTS_PER_SOL, // Vote Entry Fee: 0.1 SOL
+          lamports: 0, // 0 SOL transfer (Vote only)
       });
   
       return new Transaction().add(transferIx).add(memoIx);
